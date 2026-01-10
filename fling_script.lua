@@ -977,3 +977,6 @@ task.spawn(function()
         end
     end
 end)
+
+print("[Fling] Script loaded!")
+print("[Fling] Press Right Ctrl to toggle fling ON/OFF")
