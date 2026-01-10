@@ -782,6 +782,51 @@ local function getVehicleParts(player)
     return parts
 end
 
+local function getPlayerTeam(player)
+    local teamName = "Civilian"
+    
+    pcall(function()
+        if player.Team then 
+            teamName = player.Team.Name 
+        end
+    end)
+    
+    pcall(function()
+        local data = player:FindFirstChild("DataFolder")
+        if data then
+            local info = data:FindFirstChild("Information")
+            if info then
+                local team = info:FindFirstChild("Team")
+                if team and team.Value and team.Value ~= "" then 
+                    teamName = team.Value 
+                end
+            end
+        end
+    end)
+    
+    return teamName
+end
+
+local function shouldFlingPlayer(player)
+    if getgenv().FlingTargetName ~= "" then
+        local targetId = tonumber(getgenv().FlingTargetName)
+        if targetId then
+            return player.UserId == targetId
+        else
+            local searchName = string.lower(getgenv().FlingTargetName)
+            return string.lower(player.Name):find(searchName) or string.lower(player.DisplayName):find(searchName)
+        end
+    end
+    
+    local team = getPlayerTeam(player)
+    
+    if getgenv().FlingTeams[team] == true then
+        return true
+    end
+    
+    return false
+end
+
 task.spawn(function()
     while true do
         pcall(function()
