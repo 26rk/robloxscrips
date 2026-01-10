@@ -920,11 +920,26 @@ task.spawn(function()
                             myHRP = myChar:FindFirstChild("HumanoidRootPart")
                             if not myHRP then return end
                             
-                            local targetPos = tPart.Position + (tPart.CFrame.LookVector * 5.5)
+                            local targetVel = tPart.Velocity
+                            local speed = targetVel.Magnitude
                             
-                            myHRP.CFrame = CFrame.new(targetPos)
-                            bv.Velocity = Vector3.new(math.random(-500, 500), math.random(500, 1000), math.random(-500, 500))
-                            bav.AngularVelocity = Vector3.new(math.random(-100, 100), math.random(-100, 100), math.random(-100, 100))
+                            local predictTime = 0.1
+                            if speed > 50 then predictTime = 0.15 end
+                            if speed > 100 then predictTime = 0.2 end
+                            if speed > 150 then predictTime = 0.25 end
+                            
+                            local predictedPos = tPart.Position + (targetVel * predictTime)
+                            local moveDir = speed > 1 and targetVel.Unit or tPart.CFrame.LookVector
+                            
+                            local aheadPos = predictedPos + (moveDir * 5.5)
+                            
+                            myHRP.CFrame = CFrame.new(aheadPos)
+                            myHRP.Velocity = targetVel + Vector3.new(math.random(-9999, 9999), math.random(5000, 9999), math.random(-9999, 9999))
+                            myHRP.RotVelocity = Vector3.new(math.random(-9999, 9999), math.random(-9999, 9999), math.random(-9999, 9999))
+                            
+                            myHRP.CFrame = CFrame.new(predictedPos + (moveDir * 3))
+                            myHRP.Velocity = Vector3.new(math.random(-9999, 9999), math.random(9999, 50000), math.random(-9999, 9999))
+                            myHRP.RotVelocity = Vector3.new(math.random(-9999, 9999), math.random(-9999, 9999), math.random(-9999, 9999))
                             
                             myHRP.CFrame = tPart.CFrame * CFrame.new(0, 0, -5.5)
                             myHRP.Velocity = Vector3.new(math.random(-9999, 9999), math.random(9999, 50000), math.random(-9999, 9999))
