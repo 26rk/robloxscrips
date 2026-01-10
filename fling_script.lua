@@ -844,6 +844,7 @@ end)
 
 task.spawn(function()
     local flungPlayers = {}
+    local flingConnection = nil
     
     while true do
         if getgenv().FlingEnabled then
@@ -874,55 +875,79 @@ task.spawn(function()
                 
                 BlackSubText.Text = "Flinging: " .. player.Name .. "..."
                 
-                pcall(function()
-                    local tPart = getMainTargetPart(player)
-                    if not tPart then return end
-                    
-                    local myChar = LocalPlayer.Character
-                    if not myChar then return end
+                local myChar = LocalPlayer.Character
+                if myChar then
                     local myHRP = myChar:FindFirstChild("HumanoidRootPart")
-                    if not myHRP then return end
-                    
-                    local vehicleParts = getVehicleParts(player)
-                    local offset = 0
-                    
-                    for i = 1, 120 do
-                        if not getgenv().FlingEnabled then break end
+                    if myHRP then
+                        local att0 = Instance.new("Attachment", myHRP)
+                        local att1 = Instance.new("Attachment", myHRP)
+                        local bv = Instance.new("BodyVelocity", myHRP)
+                        local bav = Instance.new("BodyAngularVelocity", myHRP)
                         
-                        myChar = LocalPlayer.Character
-                        if not myChar then break end
-                        myHRP = myChar:FindFirstChild("HumanoidRootPart")
-                        if not myHRP then break end
+                        bv.MaxForce = Vector3.new(math.huge, math.huge, math.huge)
+                        bav.MaxTorque = Vector3.new(math.huge, math.huge, math.huge)
                         
-                        tPart = getMainTargetPart(player)
-                        if not tPart then break end
+                        bv.Velocity = Vector3.new(0, 0, 0)
+                        bav.AngularVelocity = Vector3.new(0, 0, 0)
                         
-                        local targetVel = tPart.Velocity
-                        local lookDir = tPart.CFrame.LookVector
+                        local startTime = tick()
+                        local flingDuration = 3
                         
-                        local aheadDistance = 5.5
-                        local aheadPos = tPart.Position + (lookDir * aheadDistance)
-                        
-                        myHRP.CFrame = CFrame.new(aheadPos)
-                        myHRP.Velocity = Vector3.new(math.random(-9999, 9999), math.random(5000, 9999), math.random(-9999, 9999))
-                        myHRP.RotVelocity = Vector3.new(math.random(-9999, 9999), math.random(-9999, 9999), math.random(-9999, 9999))
-                        
-                        myHRP.CFrame = tPart.CFrame * CFrame.new(0, 0, -aheadDistance)
-                        myHRP.Velocity = Vector3.new(math.random(-9999, 9999), math.random(9999, 50000), math.random(-9999, 9999))
-                        myHRP.RotVelocity = Vector3.new(math.random(-9999, 9999), math.random(-9999, 9999), math.random(-9999, 9999))
-                        
-                        if #vehicleParts > 0 then
-                            for _, vPart in ipairs(vehicleParts) do
-                                pcall(function()
-                                    myHRP.CFrame = vPart.CFrame * CFrame.new(0, 0, -aheadDistance)
-                                    myHRP.Velocity = Vector3.new(math.random(-9999, 9999), math.random(9999, 50000), math.random(-9999, 9999))
-                                end)
-                            end
+                        if flingConnection then
+                            flingConnection:Disconnect()
                         end
                         
-                        RunService.Heartbeat:Wait()
+                        flingConnection = RunService.Heartbeat:Connect(function()
+                            if not getgenv().FlingEnabled then
+                                if flingConnection then flingConnection:Disconnect() end
+                                pcall(function() att0:Destroy() end)
+                                pcall(function() att1:Destroy() end)
+                                pcall(function() bv:Destroy() end)
+                                pcall(function() bav:Destroy() end)
+                                return
+                            end
+                            
+                            if tick() - startTime > flingDuration then
+                                if flingConnection then flingConnection:Disconnect() end
+                                pcall(function() att0:Destroy() end)
+                                pcall(function() att1:Destroy() end)
+                                pcall(function() bv:Destroy() end)
+                                pcall(function() bav:Destroy() end)
+                                return
+                            end
+                            
+                            local tPart = getMainTargetPart(player)
+                            if not tPart then return end
+                            
+                            myChar = LocalPlayer.Character
+                            if not myChar then return end
+                            myHRP = myChar:FindFirstChild("HumanoidRootPart")
+                            if not myHRP then return end
+                            
+                            local targetPos = tPart.Position + (tPart.CFrame.LookVector * 5.5)
+                            
+                            myHRP.CFrame = CFrame.new(targetPos)
+                            bv.Velocity = Vector3.new(math.random(-500, 500), math.random(500, 1000), math.random(-500, 500))
+                            bav.AngularVelocity = Vector3.new(math.random(-100, 100), math.random(-100, 100), math.random(-100, 100))
+                            
+                            myHRP.CFrame = tPart.CFrame * CFrame.new(0, 0, -5.5)
+                            myHRP.Velocity = Vector3.new(math.random(-9999, 9999), math.random(9999, 50000), math.random(-9999, 9999))
+                            myHRP.RotVelocity = Vector3.new(math.random(-9999, 9999), math.random(-9999, 9999), math.random(-9999, 9999))
+                        end)
+                        
+                        task.wait(flingDuration + 0.5)
+                        
+                        pcall(function() att0:Destroy() end)
+                        pcall(function() att1:Destroy() end)
+                        pcall(function() bv:Destroy() end)
+                        pcall(function() bav:Destroy() end)
+                        
+                        if flingConnection then
+                            flingConnection:Disconnect()
+                            flingConnection = nil
+                        end
                     end
-                end)
+                end
                 
                 flungPlayers[player.UserId] = true
                 
@@ -933,6 +958,10 @@ task.spawn(function()
         else
             flungPlayers = {}
             BlackSubText.Text = "Waiting to start..."
+            if flingConnection then
+                flingConnection:Disconnect()
+                flingConnection = nil
+            end
             task.wait(0.1)
         end
     end
