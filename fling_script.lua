@@ -755,10 +755,6 @@ end
 
 local function getMainTargetPart(player)
     if not player.Character then return nil end
-    local hum = player.Character:FindFirstChildOfClass("Humanoid")
-    if hum and hum.SeatPart then
-        return hum.SeatPart
-    end
     return player.Character:FindFirstChild("HumanoidRootPart")
 end
 
