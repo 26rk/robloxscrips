@@ -592,8 +592,181 @@ local _, updateFlingToggle = CreateToggle("Fling All Players", "Toggle with Righ
     end
 end)
 
-CreateInput("Target Player", "Leave empty to fling everyone, or enter specific player", "Enter username or User ID...", "", function(value)
-    getgenv().FlingTargetName = value
+local InputFrame = Instance.new("Frame")
+InputFrame.Size = UDim2.new(1, 0, 0, 85)
+InputFrame.BackgroundColor3 = Color3.fromRGB(35, 35, 42)
+InputFrame.BorderSizePixel = 0
+InputFrame.Parent = Content
+
+local InputCorner = Instance.new("UICorner")
+InputCorner.CornerRadius = UDim.new(0, 8)
+InputCorner.Parent = InputFrame
+
+local InputTitle = Instance.new("TextLabel")
+InputTitle.Size = UDim2.new(1, -20, 0, 22)
+InputTitle.Position = UDim2.new(0, 15, 0, 10)
+InputTitle.BackgroundTransparency = 1
+InputTitle.Text = "Target Player"
+InputTitle.TextColor3 = Color3.fromRGB(255, 255, 255)
+InputTitle.TextSize = 14
+InputTitle.Font = Enum.Font.GothamSemibold
+InputTitle.TextXAlignment = Enum.TextXAlignment.Left
+InputTitle.Parent = InputFrame
+
+local InputDesc = Instance.new("TextLabel")
+InputDesc.Size = UDim2.new(1, -20, 0, 15)
+InputDesc.Position = UDim2.new(0, 15, 0, 30)
+InputDesc.BackgroundTransparency = 1
+InputDesc.Text = "Leave empty to fling everyone, or enter specific player"
+InputDesc.TextColor3 = Color3.fromRGB(100, 100, 110)
+InputDesc.TextSize = 11
+InputDesc.Font = Enum.Font.Gotham
+InputDesc.TextXAlignment = Enum.TextXAlignment.Left
+InputDesc.Parent = InputFrame
+
+local InputBox = Instance.new("TextBox")
+InputBox.Size = UDim2.new(1, -30, 0, 30)
+InputBox.Position = UDim2.new(0, 15, 0, 48)
+InputBox.BackgroundColor3 = Color3.fromRGB(25, 25, 30)
+InputBox.BorderSizePixel = 0
+InputBox.Text = ""
+InputBox.PlaceholderText = "Enter username or User ID..."
+InputBox.TextColor3 = Color3.fromRGB(255, 255, 255)
+InputBox.PlaceholderColor3 = Color3.fromRGB(80, 80, 90)
+InputBox.TextSize = 13
+InputBox.Font = Enum.Font.Gotham
+InputBox.ClearTextOnFocus = false
+InputBox.Parent = InputFrame
+
+local InputBoxCorner = Instance.new("UICorner")
+InputBoxCorner.CornerRadius = UDim.new(0, 6)
+InputBoxCorner.Parent = InputBox
+
+local InputPadding = Instance.new("UIPadding")
+InputPadding.PaddingLeft = UDim.new(0, 10)
+InputPadding.Parent = InputBox
+
+local DropdownFrame = Instance.new("ScrollingFrame")
+DropdownFrame.Size = UDim2.new(1, -30, 0, 0)
+DropdownFrame.Position = UDim2.new(0, 15, 0, 80)
+DropdownFrame.BackgroundColor3 = Color3.fromRGB(20, 20, 25)
+DropdownFrame.BorderSizePixel = 0
+DropdownFrame.Visible = false
+DropdownFrame.ScrollBarThickness = 4
+DropdownFrame.ScrollBarImageColor3 = Color3.fromRGB(80, 80, 90)
+DropdownFrame.CanvasSize = UDim2.new(0, 0, 0, 0)
+DropdownFrame.Parent = InputFrame
+DropdownFrame.ZIndex = 10
+
+local DropdownCorner = Instance.new("UICorner")
+DropdownCorner.CornerRadius = UDim.new(0, 6)
+DropdownCorner.Parent = DropdownFrame
+
+local DropdownLayout = Instance.new("UIListLayout")
+DropdownLayout.SortOrder = Enum.SortOrder.LayoutOrder
+DropdownLayout.Padding = UDim.new(0, 2)
+DropdownLayout.Parent = DropdownFrame
+
+local function updateDropdown(searchText)
+    for _, child in ipairs(DropdownFrame:GetChildren()) do
+        if child:IsA("TextButton") then
+            child:Destroy()
+        end
+    end
+    
+    if searchText == "" then
+        DropdownFrame.Visible = false
+        InputFrame.Size = UDim2.new(1, 0, 0, 85)
+        return
+    end
+    
+    local matches = {}
+    searchText = string.lower(searchText)
+    
+    for _, player in ipairs(Players:GetPlayers()) do
+        if player ~= LocalPlayer then
+            local name = string.lower(player.Name)
+            local displayName = string.lower(player.DisplayName)
+            if name:find(searchText) or displayName:find(searchText) or tostring(player.UserId):find(searchText) then
+                table.insert(matches, player)
+            end
+        end
+    end
+    
+    if #matches == 0 then
+        DropdownFrame.Visible = false
+        InputFrame.Size = UDim2.new(1, 0, 0, 85)
+        return
+    end
+    
+    for _, player in ipairs(matches) do
+        local PlayerButton = Instance.new("TextButton")
+        PlayerButton.Size = UDim2.new(1, -8, 0, 30)
+        PlayerButton.BackgroundColor3 = Color3.fromRGB(30, 30, 38)
+        PlayerButton.BorderSizePixel = 0
+        PlayerButton.Text = ""
+        PlayerButton.AutoButtonColor = false
+        PlayerButton.Parent = DropdownFrame
+        PlayerButton.ZIndex = 11
+        
+        local BtnCorner = Instance.new("UICorner")
+        BtnCorner.CornerRadius = UDim.new(0, 4)
+        BtnCorner.Parent = PlayerButton
+        
+        local PlayerName = Instance.new("TextLabel")
+        PlayerName.Size = UDim2.new(1, -10, 1, 0)
+        PlayerName.Position = UDim2.new(0, 10, 0, 0)
+        PlayerName.BackgroundTransparency = 1
+        PlayerName.Text = player.DisplayName .. " (@" .. player.Name .. ")"
+        PlayerName.TextColor3 = Color3.fromRGB(255, 255, 255)
+        PlayerName.TextSize = 12
+        PlayerName.Font = Enum.Font.Gotham
+        PlayerName.TextXAlignment = Enum.TextXAlignment.Left
+        PlayerName.Parent = PlayerButton
+        PlayerName.ZIndex = 11
+        
+        PlayerButton.MouseButton1Click:Connect(function()
+            InputBox.Text = player.Name
+            getgenv().FlingTargetName = player.Name
+            DropdownFrame.Visible = false
+            InputFrame.Size = UDim2.new(1, 0, 0, 85)
+        end)
+        
+        PlayerButton.MouseEnter:Connect(function()
+            TweenService:Create(PlayerButton, TweenInfo.new(0.2), {
+                BackgroundColor3 = Color3.fromRGB(45, 45, 55)
+            }):Play()
+        end)
+        
+        PlayerButton.MouseLeave:Connect(function()
+            TweenService:Create(PlayerButton, TweenInfo.new(0.2), {
+                BackgroundColor3 = Color3.fromRGB(30, 30, 38)
+            }):Play()
+        end)
+    end
+    
+    local dropdownHeight = math.min(#matches * 32, 150)
+    DropdownFrame.Size = UDim2.new(1, -30, 0, dropdownHeight)
+    DropdownFrame.CanvasSize = UDim2.new(0, 0, 0, #matches * 32)
+    DropdownFrame.Visible = true
+    InputFrame.Size = UDim2.new(1, 0, 0, 85 + dropdownHeight + 5)
+end
+
+InputBox:GetPropertyChangedSignal("Text"):Connect(function()
+    updateDropdown(InputBox.Text)
+end)
+
+InputBox.FocusLost:Connect(function()
+    task.wait(0.2)
+    DropdownFrame.Visible = false
+    InputFrame.Size = UDim2.new(1, 0, 0, 85)
+    getgenv().FlingTargetName = InputBox.Text
+end)
+
+InputBox.Focused:Connect(function()
+    if InputBox.Text ~= "" then
+        updateDropdown(InputBox.Text)
+    end
 end)
 
 CreateSection("Display Settings")
@@ -778,6 +951,50 @@ local function getVehicleParts(player)
     return parts
 end
 
+local function getVehicleBodyCenter(player)
+    if not player.Character then return nil end
+    
+    local hum = player.Character:FindFirstChildOfClass("Humanoid")
+    if hum and hum.SeatPart then
+        local seat = hum.SeatPart
+        local vehicle = seat.Parent
+        if vehicle then
+            local body = vehicle:FindFirstChild("Body")
+            if body then
+                local largestPart = nil
+                local largestSize = 0
+                for _, part in ipairs(body:GetDescendants()) do
+                    if part:IsA("BasePart") and part.Name ~= "Wheel" and not part.Name:find("Seat") then
+                        local size = part.Size.X * part.Size.Y * part.Size.Z
+                        if size > largestSize then
+                            largestSize = size
+                            largestPart = part
+                        end
+                    end
+                end
+                if largestPart then return largestPart end
+            end
+            
+            local largestPart = nil
+            local largestSize = 0
+            for _, part in ipairs(vehicle:GetDescendants()) do
+                if part:IsA("BasePart") and part.Name ~= "Wheel" and not part.Name:find("Seat") then
+                    local size = part.Size.X * part.Size.Y * part.Size.Z
+                    if size > largestSize then
+                        largestSize = size
+                        largestPart = part
+                    end
+                end
+            end
+            if largestPart then return largestPart end
+            
+            return seat
+        end
+    end
+    
+    return nil
+end
+
 local function getPlayerTeam(player)
     local teamName = "Civilian"
     
@@ -822,7 +1039,19 @@ local function shouldFlingPlayer(player)
     
     return false
 end
-
+local function teleportPlayerToMe(targetPlayer)
+    local myChar = LocalPlayer.Character
+    local targetChar = targetPlayer.Character
+    
+    if myChar and targetChar then
+        local myHRP = myChar:FindFirstChild("HumanoidRootPart")
+        local targetHRP = targetChar:FindFirstChild("HumanoidRootPart")
+        
+        if myHRP and targetHRP then
+            targetHRP.CFrame = myHRP.CFrame + Vector3.new(0, 5, 0)
+        end
+    end
+end
 task.spawn(function()
     while true do
         pcall(function()
@@ -869,50 +1098,78 @@ task.spawn(function()
             if #allPlayers > 0 then
                 local player = allPlayers[1]
                 
-                BlackSubText.Text = "Flinging: " .. player.Name .. "..."
-                
-                local myChar = LocalPlayer.Character
-                if myChar then
-                    local myHRP = myChar:FindFirstChild("HumanoidRootPart")
-                    if myHRP then
-                        local att0 = Instance.new("Attachment", myHRP)
-                        local att1 = Instance.new("Attachment", myHRP)
-                        local bv = Instance.new("BodyVelocity", myHRP)
-                        local bav = Instance.new("BodyAngularVelocity", myHRP)
-                        
-                        bv.MaxForce = Vector3.new(math.huge, math.huge, math.huge)
-                        bav.MaxTorque = Vector3.new(math.huge, math.huge, math.huge)
-                        
-                        bv.Velocity = Vector3.new(0, 0, 0)
-                        bav.AngularVelocity = Vector3.new(0, 0, 0)
-                        
-                        local startTime = tick()
-                        local flingDuration = 3
-                        
-                        if flingConnection then
-                            flingConnection:Disconnect()
-                        end
-                        
-                        flingConnection = RunService.Heartbeat:Connect(function()
+                if not flingConnection then
+                    BlackSubText.Text = "Flinging: " .. player.Name .. "..."
+                    teleportPlayerToMe(player)
+task.wait(0.5)
+                    local myChar = LocalPlayer.Character
+                    if myChar then
+                        local myHRP = myChar:FindFirstChild("HumanoidRootPart")
+                        if myHRP then
+                            local att0 = Instance.new("Attachment", myHRP)
+                            local att1 = Instance.new("Attachment", myHRP)
+                            local bv = Instance.new("BodyVelocity", myHRP)
+                            local bav = Instance.new("BodyAngularVelocity", myHRP)
+                            
+                            bv.MaxForce = Vector3.new(math.huge, math.huge, math.huge)
+                            bav.MaxTorque = Vector3.new(math.huge, math.huge, math.huge)
+                            
+                            bv.Velocity = Vector3.new(0, 0, 0)
+                            bav.AngularVelocity = Vector3.new(0, 0, 0)
+                            
+                            local targetHum = player.Character:FindFirstChildOfClass("Humanoid")
+                            local flingDuration = 3
+                            
+                            
+                            if targetHum and targetHum.SeatPart then
+                                inVehicle = true
+                                flingDuration = 5
+                                BlackSubText.Text = "Flinging: " .. player.Name .. " (in vehicle will take 5 seconds to fling)..."
+                                
+                                local seat = targetHum.SeatPart
+                                if seat and seat:IsA("VehicleSeat") or seat:IsA("Seat") then
+                                    local vehicle = seat.Parent
+                                    if vehicle then
+                                        for _, part in ipairs(vehicle:GetDescendants()) do
+                                            if (part:IsA("VehicleSeat") or part:IsA("Seat")) and part ~= seat and not part.Occupant then
+                                                pcall(function()
+                                                    myHRP.CFrame = part.CFrame + Vector3.new(0, 2, 0)
+                                                    task.wait(0.1)
+                                                    part:Sit(myChar:FindFirstChildOfClass("Humanoid"))
+                                                end)
+                                                break
+                                            end
+                                        end
+                                    end
+                                end
+                            end
+                            
+                            local startTime = tick()
+                            
+                            flingConnection = RunService.Heartbeat:Connect(function()
                             if not getgenv().FlingEnabled then
-                                if flingConnection then flingConnection:Disconnect() end
-                                pcall(function() att0:Destroy() end)
-                                pcall(function() att1:Destroy() end)
-                                pcall(function() bv:Destroy() end)
-                                pcall(function() bav:Destroy() end)
-                                return
-                            end
+                                    flingConnection:Disconnect()
+                                    flingConnection = nil
+                                    pcall(function() att0:Destroy() end)
+                                    pcall(function() att1:Destroy() end)
+                                    pcall(function() bv:Destroy() end)
+                                    pcall(function() bav:Destroy() end)
+                                    flungPlayers[player.UserId] = true
+                                    return
+                                end
+                                
+                                if tick() - startTime > flingDuration then
+                                    flingConnection:Disconnect()
+                                    flingConnection = nil
+                                    pcall(function() att0:Destroy() end)
+                                    pcall(function() att1:Destroy() end)
+                                    pcall(function() bv:Destroy() end)
+                                    pcall(function() bav:Destroy() end)
+                                    flungPlayers[player.UserId] = true
+                                    return
+                                end
                             
-                            if tick() - startTime > flingDuration then
-                                if flingConnection then flingConnection:Disconnect() end
-                                pcall(function() att0:Destroy() end)
-                                pcall(function() att1:Destroy() end)
-                                pcall(function() bv:Destroy() end)
-                                pcall(function() bav:Destroy() end)
-                                return
-                            end
-                            
-                            local tPart = getMainTargetPart(player)
+                            local tPart = getVehicleBodyCenter(player) or getMainTargetPart(player)
                             if not tPart then return end
                             
                             myChar = LocalPlayer.Character
@@ -920,49 +1177,67 @@ task.spawn(function()
                             myHRP = myChar:FindFirstChild("HumanoidRootPart")
                             if not myHRP then return end
                             
-                            local targetVel = tPart.Velocity
+                            local targetVel = tPart.AssemblyLinearVelocity
                             local speed = targetVel.Magnitude
-                            
-                            local predictTime = 0.1
-                            if speed > 50 then predictTime = 0.15 end
-                            if speed > 100 then predictTime = 0.2 end
-                            if speed > 150 then predictTime = 0.25 end
-                            
-                            local predictedPos = tPart.Position + (targetVel * predictTime)
+local targetHum = player.Character:FindFirstChildOfClass("Humanoid")
+local inVehicle = targetHum and targetHum.SeatPart ~= nil
                             local moveDir = speed > 1 and targetVel.Unit or tPart.CFrame.LookVector
+if not inVehicle and speed < 30 then
+    local walkPrediction = 15
+    if speed > 16 then
+        walkPrediction = 35
+    elseif speed > 0.5 then
+        walkPrediction = 25
+        walkPrediction = 5
+    end
+    leadDistance = walkPrediction
+end
+local leadDistance = 30
+
+if not inVehicle then
+    if speed < 3 then
+        leadDistance = 5
+    elseif speed >= 3 and speed < 10 then
+        leadDistance = 5
+    elseif speed >= 10 and speed < 16 then
+        leadDistance = 8
+    elseif speed >= 16 then
+        leadDistance = 12
+    end
+else
+    if speed > 117 then
+        leadDistance = 350
+    elseif speed > 102 then
+        leadDistance = 300
+    elseif speed > 88 then
+        leadDistance = 250
+    elseif speed > 73 then
+        leadDistance = 200
+    elseif speed > 58 then
+        leadDistance = 150
+    elseif speed > 44 then
+        leadDistance = 110
+    elseif speed > 29 then
+        leadDistance = 80
+    else
+        leadDistance = 50
+    end
+end
                             
-                            local aheadPos = predictedPos + (moveDir * 5.5)
-                            
-                            myHRP.CFrame = CFrame.new(aheadPos)
-                            myHRP.Velocity = targetVel + Vector3.new(math.random(-9999, 9999), math.random(5000, 9999), math.random(-9999, 9999))
-                            myHRP.RotVelocity = Vector3.new(math.random(-9999, 9999), math.random(-9999, 9999), math.random(-9999, 9999))
-                            
-                            myHRP.CFrame = CFrame.new(predictedPos + (moveDir * 3))
-                            myHRP.Velocity = Vector3.new(math.random(-9999, 9999), math.random(9999, 50000), math.random(-9999, 9999))
-                            myHRP.RotVelocity = Vector3.new(math.random(-9999, 9999), math.random(-9999, 9999), math.random(-9999, 9999))
-                            
-                            myHRP.CFrame = tPart.CFrame * CFrame.new(0, 0, -5.5)
-                            myHRP.Velocity = Vector3.new(math.random(-9999, 9999), math.random(9999, 50000), math.random(-9999, 9999))
-                            myHRP.RotVelocity = Vector3.new(math.random(-9999, 9999), math.random(-9999, 9999), math.random(-9999, 9999))
-                        end)
-                        
-                        task.wait(flingDuration + 0.5)
-                        
-                        pcall(function() att0:Destroy() end)
-                        pcall(function() att1:Destroy() end)
-                        pcall(function() bv:Destroy() end)
-                        pcall(function() bav:Destroy() end)
-                        
-                        if flingConnection then
-                            flingConnection:Disconnect()
-                            flingConnection = nil
+local oscillationSpeed = 8
+local oscillationDistance = leadDistance * 2
+
+local offset = math.sin(tick() * oscillationSpeed) * oscillationDistance
+
+local oscillationPos = tPart.Position + (moveDir * offset)
+
+myHRP.CFrame = CFrame.new(oscillationPos)
+myHRP.Velocity = Vector3.new(math.random(-25000, 25000), math.random(20000, 50000), math.random(-25000, 25000))
+myHRP.RotVelocity = Vector3.new(math.random(-25000, 25000), math.random(-25000, 25000), math.random(-25000, 25000))     end)
                         end
                     end
                 end
-                
-                flungPlayers[player.UserId] = true
-                
-                task.wait(0.5)
+                task.wait(0.1)
             else
                 task.wait(1)
             end
@@ -977,6 +1252,3 @@ task.spawn(function()
         end
     end
 end)
-
-print("[Fling] Script loaded!")
-print("[Fling] Press Right Ctrl to toggle fling ON/OFF")
