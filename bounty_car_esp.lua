@@ -23,11 +23,17 @@ local NameColor     = Color3.fromRGB(255, 200, 0)
 local BoxColor      = Color3.fromRGB(252, 211, 3)
 local TracerColor   = Color3.fromRGB(252, 211, 3)
 
-local MaxDistance   = 5000
+local MaxDistance   = 0
 local TracerOrigin  = "Bottom"
-local LabelFontSize = 14
+local LabelFontSize = 24
 
 local ESPObjects = {}
+
+local function IsPartOnScreen(part)
+    if not part:IsA("BasePart") then return false end
+    local _, onScreen = Camera:WorldToViewportPoint(part.Position)
+    return onScreen
+end
 
 local function GetVehicleRoot(vehicle)
     return vehicle.PrimaryPart or vehicle:FindFirstChildWhichIsA("BasePart")
@@ -106,6 +112,13 @@ local function UpdateESP()
             continue
         end
 
+        if not ESPEnabled then
+            obj.label.Visible  = false
+            obj.box.Visible    = false
+            obj.tracer.Visible = false
+            continue
+        end
+
         local root = GetVehicleRoot(vehicle)
         if not root then
             obj.label.Visible  = false
@@ -114,75 +127,94 @@ local function UpdateESP()
             continue
         end
 
-        local worldPos              = root.Position
-        local screenPos, onScreen, depth = WorldToViewport(worldPos)
-        local dist                  = localPos and (worldPos - localPos).Magnitude or math.huge
-        local withinRange           = (MaxDistance <= 0) or (dist <= MaxDistance)
+        -- Check if any part of the vehicle is on screen
+        local anyPartVisible = false
+        for _, part in ipairs(vehicle:GetDescendants()) do
+            if IsPartOnScreen(part) then
+                anyPartVisible = true
+                break
+            end
+        end
 
-        if not (ESPEnabled and onScreen and withinRange and depth > 0) then
+        if not anyPartVisible then
             obj.label.Visible  = false
             obj.box.Visible    = false
             obj.tracer.Visible = false
             continue
         end
 
+        local worldPos = root.Position
+        local screenPos, onScreen, depth = WorldToViewport(worldPos)
+        local dist = localPos and (worldPos - localPos).Magnitude or math.huge
+        local withinRange = (MaxDistance <= 0) or (dist <= MaxDistance)
+
+        if not (withinRange and depth > 0) then
+            obj.label.Visible  = false
+            obj.box.Visible    = false
+            obj.tracer.Visible = false
+            continue
+        end
+
+        -- Build label text
         local lines = {}
         if ShowName     then table.insert(lines, GetVehicleName(vehicle)) end
         if ShowValue    then table.insert(lines, "Value: " .. GetBountyValue(vehicle)) end
         if ShowDistance then table.insert(lines, string.format("%.0f meters", dist)) end
 
-        obj.label.Text     = table.concat(lines, "\n")
-        obj.label.Size     = LabelFontSize
-        obj.label.Color    = NameColor
-        obj.label.Position = Vector2.new(screenPos.X, screenPos.Y - 42)
-        obj.label.Visible  = (#lines > 0)
+        obj.label.Text  = table.concat(lines, "\n")
+        obj.label.Size  = LabelFontSize
+        obj.label.Color = NameColor
 
-        if ShowBox then
-            local minX, minY = math.huge, math.huge
-            local maxX, maxY = -math.huge, -math.huge
-            local anyVisible = false
+        -- Calculate box for proper label positioning
+        local minX, minY = math.huge, math.huge
+        local maxX, maxY = -math.huge, -math.huge
+        local boxAnyVisible = false
 
-            for _, part in ipairs(vehicle:GetDescendants()) do
-                if part:IsA("BasePart") then
-                    local sz = part.Size
-                    local cf = part.CFrame
-                    for _, offset in ipairs({
-                        Vector3.new( sz.X/2,  sz.Y/2,  sz.Z/2),
-                        Vector3.new(-sz.X/2,  sz.Y/2,  sz.Z/2),
-                        Vector3.new( sz.X/2, -sz.Y/2,  sz.Z/2),
-                        Vector3.new(-sz.X/2, -sz.Y/2,  sz.Z/2),
-                        Vector3.new( sz.X/2,  sz.Y/2, -sz.Z/2),
-                        Vector3.new(-sz.X/2,  sz.Y/2, -sz.Z/2),
-                        Vector3.new( sz.X/2, -sz.Y/2, -sz.Z/2),
-                        Vector3.new(-sz.X/2, -sz.Y/2, -sz.Z/2),
-                    }) do
-                        local sp, _, d = WorldToViewport((cf * CFrame.new(offset)).Position)
-                        if d > 0 then
-                            anyVisible = true
-                            if sp.X < minX then minX = sp.X end
-                            if sp.Y < minY then minY = sp.Y end
-                            if sp.X > maxX then maxX = sp.X end
-                            if sp.Y > maxY then maxY = sp.Y end
-                        end
+        for _, part in ipairs(vehicle:GetDescendants()) do
+            if part:IsA("BasePart") then
+                local sz = part.Size
+                local cf = part.CFrame
+                for _, offset in ipairs({
+                    Vector3.new( sz.X/2,  sz.Y/2,  sz.Z/2),
+                    Vector3.new(-sz.X/2,  sz.Y/2,  sz.Z/2),
+                    Vector3.new( sz.X/2, -sz.Y/2,  sz.Z/2),
+                    Vector3.new(-sz.X/2, -sz.Y/2,  sz.Z/2),
+                    Vector3.new( sz.X/2,  sz.Y/2, -sz.Z/2),
+                    Vector3.new(-sz.X/2,  sz.Y/2, -sz.Z/2),
+                    Vector3.new( sz.X/2, -sz.Y/2, -sz.Z/2),
+                    Vector3.new(-sz.X/2, -sz.Y/2, -sz.Z/2),
+                }) do
+                    local sp, _, d = WorldToViewport((cf * CFrame.new(offset)).Position)
+                    if d > 0 then
+                        boxAnyVisible = true
+                        if sp.X < minX then minX = sp.X end
+                        if sp.Y < minY then minY = sp.Y end
+                        if sp.X > maxX then maxX = sp.X end
+                        if sp.Y > maxY then maxY = sp.Y end
                     end
                 end
             end
-
-            if anyVisible and maxX > minX and maxY > minY then
-                obj.box.Position   = Vector2.new(minX, minY)
-                obj.box.Size       = Vector2.new(maxX - minX, maxY - minY)
-                obj.box.Color      = BoxColor
-                obj.box.Visible    = true
-                obj.label.Position = Vector2.new((minX + maxX) / 2, minY - (LabelFontSize * #(obj.label.Text:split("\n"))) - 4)
-            else
-                obj.box.Visible = false
-            end
-        else
-            obj.box.Visible = false
         end
 
+        -- Draw box
+        if ShowBox and boxAnyVisible and maxX > minX and maxY > minY then
+            obj.box.Position = Vector2.new(minX, minY)
+            obj.box.Size     = Vector2.new(maxX - minX, maxY - minY)
+            obj.box.Color    = BoxColor
+            obj.box.Visible  = true
+            -- Position label above box
+            obj.label.Position = Vector2.new((minX + maxX) / 2, minY - (LabelFontSize + 6))
+        else
+            obj.box.Visible = false
+            -- Position label at screen position if no box
+            obj.label.Position = Vector2.new(screenPos.X, screenPos.Y - 42)
+        end
+
+        obj.label.Visible = (#lines > 0)
+
+        -- Draw tracer
         if ShowTracer then
-            local originY      = (TracerOrigin == "Bottom") and vpSize.Y or (vpSize.Y / 2)
+            local originY = (TracerOrigin == "Bottom") and vpSize.Y or (vpSize.Y / 2)
             obj.tracer.From    = Vector2.new(vpSize.X / 2, originY)
             obj.tracer.To      = screenPos
             obj.tracer.Color   = TracerColor
@@ -307,18 +339,18 @@ VisualsTab:Section({ Title = "Filters" })
 VisualsTab:Slider({
     Title    = "Max Distance",
     Desc     = "Maximum distance (meters) to show ESP. Set to 0 for unlimited.",
-    Value    = { Min = 0, Max = 5000, Default = 5000 },
+    Value    = { Min = 0, Max = 5000, Default = 0 },
     Step     = 100,
-    Callback = function(v) MaxDistance = tonumber(v) or 5000 end,
+    Callback = function(v) MaxDistance = tonumber(v) or 0 end,
 })
 
 VisualsTab:Slider({
     Title    = "Label Font Size",
     Desc     = "Size of the text labels drawn on screen.",
-    Value    = { Min = 10, Max = 24, Default = 14 },
+    Value    = { Min = 10, Max = 24, Default = 24 },
     Step     = 1,
     Callback = function(v)
-        LabelFontSize = tonumber(v) or 14
+        LabelFontSize = tonumber(v) or 24
         for _, obj in pairs(ESPObjects) do obj.label.Size = LabelFontSize end
     end,
 })
