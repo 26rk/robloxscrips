@@ -150,8 +150,15 @@ task.spawn(function()
 		if gameProcessed then return end
 
 		if input.KeyCode == currentCarFlyKeybind then
-			local state = carFlyToggle.Value
-			carFlyToggle:SetValue(not state)
+			carFlyActive = not carFlyActive
+			if carFlyToggle then
+				carFlyToggle:SetValue(carFlyActive)
+			end
+			if carFlyActive then
+				startFly()
+			else
+				cleanupFly()
+			end
 		end
 	end)
 end)
