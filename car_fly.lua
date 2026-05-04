@@ -6,15 +6,16 @@ local UIS = game:GetService("UserInputService")
 local RunService = game:GetService("RunService")
 local Player = game.Players.LocalPlayer
 
-local carFlyEnabled = false
+local carFlyActive = false
 local flySpeed = 150
 local smoothness = 0.15
-local flyKeybind = Enum.KeyCode.LeftAlt
+
+local carFlyKeybindEnabled = true
+local currentCarFlyKeybind = Enum.KeyCode.LeftAlt
 
 local activeConnection = nil
 local bodyGyro = nil
 local bodyVelocity = nil
-local lastCFrame = nil
 
 local function getVehicleCollisionPart()
 	local char = Player.Character
@@ -52,7 +53,7 @@ local function startFly()
 			Content = "You must be in a vehicle!",
 			Duration = 2,
 		})
-		carFlyEnabled = false
+		carFlyActive = false
 		return
 	end
 
@@ -69,32 +70,31 @@ local function startFly()
 	bodyVelocity.P = 9e4
 	bodyVelocity.Velocity = Vector3.new()
 
-	lastCFrame = bodyGyro.CFrame
 	local lastVelocity = Vector3.new()
 
 	activeConnection = RunService.Heartbeat:Connect(function()
-		if not carFlyEnabled then
+		if not carFlyActive then
 			cleanupFly()
 			return
 		end
 
 		local col = getVehicleCollisionPart()
 		if not col then
-			carFlyEnabled = false
+			carFlyActive = false
 			cleanupFly()
 			return
 		end
 
 		local char = Player.Character
 		if not char then
-			carFlyEnabled = false
+			carFlyActive = false
 			cleanupFly()
 			return
 		end
 
 		local hum = char:FindFirstChildOfClass("Humanoid")
 		if not hum or not hum.Sit then
-			carFlyEnabled = false
+			carFlyActive = false
 			cleanupFly()
 			return
 		end
@@ -113,9 +113,8 @@ local function startFly()
 			bodyVelocity.Velocity = lastVelocity
 		end
 
-		if bodyGyro and lastCFrame then
-			lastCFrame = lastCFrame:Lerp(cam, smoothness * 0.5)
-			bodyGyro.CFrame = lastCFrame
+		if bodyGyro then
+			bodyGyro.CFrame = cam
 		end
 	end)
 
@@ -126,36 +125,19 @@ local function startFly()
 	})
 end
 
-local function toggleCarFly(state)
-	carFlyEnabled = state
-	if state then
-		startFly()
-	else
-		cleanupFly()
-	end
-end
-
-local carFlyToggle = nil
-
-UIS.InputBegan:Connect(function(input, gameProcessed)
-	if gameProcessed then return end
-	if input.KeyCode == flyKeybind then
-		carFlyEnabled = not carFlyEnabled
-		if carFlyToggle then
-			carFlyToggle:SetValue(carFlyEnabled)
-		end
-		toggleCarFly(carFlyEnabled)
-	end
-end)
-
 Tabs.VehicleMods:Section({ Title = "Car Fly" })
 
-carFlyToggle = Tabs.VehicleMods:Toggle({
+local carFlyToggle = Tabs.VehicleMods:Toggle({
 	Title = "Car Fly",
 	Desc = "Fly your car around with WASD movement",
 	Value = false,
 	Callback = function(state)
-		toggleCarFly(state)
+		carFlyActive = state
+		if state then
+			startFly()
+		else
+			cleanupFly()
+		end
 	end,
 })
 
@@ -179,12 +161,21 @@ Tabs.VehicleMods:Slider({
 	end,
 })
 
-Tabs.VehicleMods:Keybind({
+local carFlyKeybindToggle = Tabs.VehicleMods:Toggle({
+	Title = "Enable Car Fly Keybind",
+	Desc = "Choose if you want the car fly keybind enabled",
+	Value = true,
+	Callback = function(state)
+		carFlyKeybindEnabled = state
+	end,
+})
+
+local carFlyKeybind = Tabs.VehicleMods:Keybind({
 	Title = "Car Fly Keybind",
 	Desc = "Toggle car fly with a single press",
 	Value = "LeftAlt",
 	Callback = function(v)
-		flyKeybind = Enum.KeyCode[v]
+		currentCarFlyKeybind = Enum.KeyCode[v]
 	end,
 })
 
@@ -193,3 +184,14 @@ WindUI:Notify({
 	Content = "Car fly loaded! Press Left Alt to toggle.",
 	Duration = 3,
 })
+
+task.spawn(function()
+	UIS.InputBegan:Connect(function(input, gameProcessed)
+		if gameProcessed then return end
+
+		if carFlyKeybindEnabled and input.KeyCode == currentCarFlyKeybind then
+			local state = carFlyToggle.Value
+			carFlyToggle:SetValue(not state)
+		end
+	end)
+end)
