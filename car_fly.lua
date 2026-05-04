@@ -11,8 +11,7 @@ local flySpeed = 150
 
 local currentCarFlyKeybind = Enum.KeyCode.LeftAlt
 
-local activeConnection = nil
-local bodyVelocity = nil
+local hb, gy, vl
 
 local function getVehicleCollisionPart()
 	local char = Player.Character
@@ -28,14 +27,9 @@ local function getVehicleCollisionPart()
 end
 
 local function cleanupFly()
-	if activeConnection then
-		activeConnection:Disconnect()
-		activeConnection = nil
-	end
-	if bodyVelocity then
-		pcall(function() bodyVelocity:Destroy() end)
-		bodyVelocity = nil
-	end
+	if hb then hb:Disconnect() hb = nil end
+	if vl then pcall(function() vl:Destroy() end) vl = nil end
+	if gy then pcall(function() gy:Destroy() end) gy = nil end
 end
 
 local function startFly()
@@ -52,49 +46,29 @@ local function startFly()
 
 	cleanupFly()
 
-	bodyVelocity = Instance.new("BodyVelocity", col)
-	bodyVelocity.MaxForce = Vector3.new(9e9, 9e9, 9e9)
-	bodyVelocity.P = 9e4
-	bodyVelocity.Velocity = Vector3.new()
+	local h = Player.Character:FindFirstChildOfClass("Humanoid")
 
-	activeConnection = RunService.Heartbeat:Connect(function()
-		if not carFlyActive then
-			cleanupFly()
-			return
-		end
+	gy = Instance.new("BodyGyro", col)
+	gy.CFrame = workspace.CurrentCamera.CFrame
+	gy.MaxTorque = Vector3.new(9e9, 9e9, 9e9)
+	gy.P = 9e4
 
-		local col = getVehicleCollisionPart()
-		if not col then
-			carFlyActive = false
-			cleanupFly()
-			return
-		end
+	vl = Instance.new("BodyVelocity", col)
+	vl.MaxForce = Vector3.new(9e9, 9e9, 9e9)
+	vl.P = 9e4
+	vl.Velocity = Vector3.new()
 
-		local char = Player.Character
-		if not char then
-			carFlyActive = false
-			cleanupFly()
-			return
-		end
-
-		local hum = char:FindFirstChildOfClass("Humanoid")
-		if not hum or not hum.Sit then
-			carFlyActive = false
-			cleanupFly()
-			return
-		end
-
+	hb = RunService.Heartbeat:Connect(function()
+		if not carFlyActive then if vl then vl.Velocity = Vector3.new() end return end
+		if not h.Sit then cleanupFly() return end
+		local t = Vector3.new()
 		local cam = workspace.CurrentCamera.CFrame
-		local movement = Vector3.new()
-
-		if UIS:IsKeyDown(Enum.KeyCode.W) then movement = movement + cam.LookVector * flySpeed end
-		if UIS:IsKeyDown(Enum.KeyCode.S) then movement = movement - cam.LookVector * flySpeed end
-		if UIS:IsKeyDown(Enum.KeyCode.A) then movement = movement - cam.RightVector * flySpeed end
-		if UIS:IsKeyDown(Enum.KeyCode.D) then movement = movement + cam.RightVector * flySpeed end
-
-		if bodyVelocity then
-			bodyVelocity.Velocity = movement
-		end
+		if UIS:IsKeyDown(Enum.KeyCode.W) then t += cam.LookVector * flySpeed end
+		if UIS:IsKeyDown(Enum.KeyCode.S) then t += cam.LookVector * -flySpeed end
+		if UIS:IsKeyDown(Enum.KeyCode.A) then t += cam.RightVector * -flySpeed end
+		if UIS:IsKeyDown(Enum.KeyCode.D) then t += cam.RightVector * flySpeed end
+		if vl then vl.Velocity = t end
+		if gy then gy.CFrame = cam end
 	end)
 
 	WindUI:Notify({
