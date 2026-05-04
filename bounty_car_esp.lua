@@ -226,7 +226,20 @@ local function UpdateESP()
 end
 
 local function RegisterVehicle(vehicle)
-    if vehicle:IsA("Model") then CreateESPForVehicle(vehicle) end
+    if vehicle:IsA("Model") then 
+        CreateESPForVehicle(vehicle)
+        
+        -- Show spawn notification
+        local root = GetVehicleRoot(vehicle)
+        if root and LocalPlayer.Character and LocalPlayer.Character.PrimaryPart then
+            local dist = (root.Position - LocalPlayer.Character.PrimaryPart.Position).Magnitude
+            WindUI:Notify({
+                Title = "Bounty Car Spawned",
+                Content = GetVehicleName(vehicle) .. " spawned " .. string.format("%.0f", dist) .. " meters away!",
+                Duration = 3,
+            })
+        end
+    end
 end
 
 local function UnregisterVehicle(vehicle)
