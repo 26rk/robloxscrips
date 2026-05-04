@@ -11,7 +11,7 @@ local flySpeed = 150
 
 local currentCarFlyKeybind = Enum.KeyCode.LeftAlt
 
-local hb, gy, vl
+local hb, vl
 
 local function getVehicleCollisionPart()
 	local char = Player.Character
@@ -29,7 +29,6 @@ end
 local function cleanupFly()
 	if hb then hb:Disconnect() hb = nil end
 	if vl then pcall(function() vl:Destroy() end) vl = nil end
-	if gy then pcall(function() gy:Destroy() end) gy = nil end
 end
 
 local function startFly()
@@ -48,11 +47,6 @@ local function startFly()
 
 	local h = Player.Character:FindFirstChildOfClass("Humanoid")
 
-	gy = Instance.new("BodyGyro", col)
-	gy.CFrame = workspace.CurrentCamera.CFrame
-	gy.MaxTorque = Vector3.new(9e9, 9e9, 9e9)
-	gy.P = 9e4
-
 	vl = Instance.new("BodyVelocity", col)
 	vl.MaxForce = Vector3.new(9e9, 9e9, 9e9)
 	vl.P = 9e4
@@ -60,7 +54,7 @@ local function startFly()
 
 	hb = RunService.Heartbeat:Connect(function()
 		if not carFlyActive then if vl then vl.Velocity = Vector3.new() end return end
-		if not h.Sit then cleanupFly() return end
+		if not h.Sit then cleanupFly() carFlyActive = false return end
 		local t = Vector3.new()
 		local cam = workspace.CurrentCamera.CFrame
 		if UIS:IsKeyDown(Enum.KeyCode.W) then t += cam.LookVector * flySpeed end
@@ -68,7 +62,6 @@ local function startFly()
 		if UIS:IsKeyDown(Enum.KeyCode.A) then t += cam.RightVector * -flySpeed end
 		if UIS:IsKeyDown(Enum.KeyCode.D) then t += cam.RightVector * flySpeed end
 		if vl then vl.Velocity = t end
-		if gy then gy.CFrame = cam end
 	end)
 
 	WindUI:Notify({
@@ -125,9 +118,7 @@ task.spawn(function()
 
 		if input.KeyCode == currentCarFlyKeybind then
 			carFlyActive = not carFlyActive
-			if carFlyToggle then
-				carFlyToggle:SetValue(carFlyActive)
-			end
+			carFlyToggle:SetValue(carFlyActive)
 			if carFlyActive then
 				startFly()
 			else
