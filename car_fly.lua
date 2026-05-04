@@ -8,13 +8,10 @@ local Player = game.Players.LocalPlayer
 
 local carFlyActive = false
 local flySpeed = 150
-local smoothness = 0.15
 
-local carFlyKeybindEnabled = true
 local currentCarFlyKeybind = Enum.KeyCode.LeftAlt
 
 local activeConnection = nil
-local bodyGyro = nil
 local bodyVelocity = nil
 
 local function getVehicleCollisionPart()
@@ -39,10 +36,6 @@ local function cleanupFly()
 		pcall(function() bodyVelocity:Destroy() end)
 		bodyVelocity = nil
 	end
-	if bodyGyro then
-		pcall(function() bodyGyro:Destroy() end)
-		bodyGyro = nil
-	end
 end
 
 local function startFly()
@@ -59,18 +52,10 @@ local function startFly()
 
 	cleanupFly()
 
-	bodyGyro = Instance.new("BodyGyro", col)
-	bodyGyro.CFrame = workspace.CurrentCamera.CFrame
-	bodyGyro.MaxTorque = Vector3.new(9e9, 9e9, 9e9)
-	bodyGyro.P = 9e4
-	bodyGyro.D = 1000
-
 	bodyVelocity = Instance.new("BodyVelocity", col)
 	bodyVelocity.MaxForce = Vector3.new(9e9, 9e9, 9e9)
 	bodyVelocity.P = 9e4
 	bodyVelocity.Velocity = Vector3.new()
-
-	local lastVelocity = Vector3.new()
 
 	activeConnection = RunService.Heartbeat:Connect(function()
 		if not carFlyActive then
@@ -107,14 +92,8 @@ local function startFly()
 		if UIS:IsKeyDown(Enum.KeyCode.A) then movement = movement - cam.RightVector * flySpeed end
 		if UIS:IsKeyDown(Enum.KeyCode.D) then movement = movement + cam.RightVector * flySpeed end
 
-		lastVelocity = lastVelocity:Lerp(movement, smoothness)
-
 		if bodyVelocity then
-			bodyVelocity.Velocity = lastVelocity
-		end
-
-		if bodyGyro then
-			bodyGyro.CFrame = cam
+			bodyVelocity.Velocity = movement
 		end
 	end)
 
@@ -151,25 +130,6 @@ Tabs.VehicleMods:Slider({
 	end,
 })
 
-Tabs.VehicleMods:Slider({
-	Title = "Smoothness",
-	Desc = "Adjust movement smoothness (0 = instant, 1 = very smooth)",
-	Value = { Min = 0, Max = 1, Default = 0.15 },
-	Step = 0.05,
-	Callback = function(val)
-		smoothness = tonumber(val) or 0.15
-	end,
-})
-
-local carFlyKeybindToggle = Tabs.VehicleMods:Toggle({
-	Title = "Enable Car Fly Keybind",
-	Desc = "Choose if you want the car fly keybind enabled",
-	Value = true,
-	Callback = function(state)
-		carFlyKeybindEnabled = state
-	end,
-})
-
 local carFlyKeybind = Tabs.VehicleMods:Keybind({
 	Title = "Car Fly Keybind",
 	Desc = "Toggle car fly with a single press",
@@ -189,7 +149,7 @@ task.spawn(function()
 	UIS.InputBegan:Connect(function(input, gameProcessed)
 		if gameProcessed then return end
 
-		if carFlyKeybindEnabled and input.KeyCode == currentCarFlyKeybind then
+		if input.KeyCode == currentCarFlyKeybind then
 			local state = carFlyToggle.Value
 			carFlyToggle:SetValue(not state)
 		end
