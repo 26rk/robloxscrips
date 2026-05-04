@@ -8,15 +8,13 @@ local Player = game.Players.LocalPlayer
 
 local carFlyEnabled = false
 local flySpeed = 150
-local minSpeed = 50
-local maxSpeed = 500
-local speedStep = 25
 local smoothness = 0.15
 local flyKeybind = Enum.KeyCode.LeftAlt
 
 local activeConnection = nil
 local bodyGyro = nil
 local bodyVelocity = nil
+local lastCFrame = nil
 
 local function getVehicleCollisionPart()
 	local char = Player.Character
@@ -54,6 +52,7 @@ local function startFly()
 			Content = "You must be in a vehicle!",
 			Duration = 2,
 		})
+		carFlyEnabled = false
 		return
 	end
 
@@ -63,12 +62,14 @@ local function startFly()
 	bodyGyro.CFrame = workspace.CurrentCamera.CFrame
 	bodyGyro.MaxTorque = Vector3.new(9e9, 9e9, 9e9)
 	bodyGyro.P = 9e4
+	bodyGyro.D = 1000
 
 	bodyVelocity = Instance.new("BodyVelocity", col)
 	bodyVelocity.MaxForce = Vector3.new(9e9, 9e9, 9e9)
 	bodyVelocity.P = 9e4
 	bodyVelocity.Velocity = Vector3.new()
 
+	lastCFrame = bodyGyro.CFrame
 	local lastVelocity = Vector3.new()
 
 	activeConnection = RunService.Heartbeat:Connect(function()
@@ -112,8 +113,9 @@ local function startFly()
 			bodyVelocity.Velocity = lastVelocity
 		end
 
-		if bodyGyro then
-			bodyGyro.CFrame = cam
+		if bodyGyro and lastCFrame then
+			lastCFrame = lastCFrame:Lerp(cam, smoothness * 0.5)
+			bodyGyro.CFrame = lastCFrame
 		end
 	end)
 
@@ -130,24 +132,25 @@ local function toggleCarFly(state)
 		startFly()
 	else
 		cleanupFly()
-		WindUI:Notify({
-			Title = "Car Fly",
-			Content = "Car fly disabled.",
-			Duration = 1,
-		})
 	end
 end
+
+local carFlyToggle = nil
 
 UIS.InputBegan:Connect(function(input, gameProcessed)
 	if gameProcessed then return end
 	if input.KeyCode == flyKeybind then
-		toggleCarFly(not carFlyEnabled)
+		carFlyEnabled = not carFlyEnabled
+		if carFlyToggle then
+			carFlyToggle:SetValue(carFlyEnabled)
+		end
+		toggleCarFly(carFlyEnabled)
 	end
 end)
 
 Tabs.VehicleMods:Section({ Title = "Car Fly" })
 
-Tabs.VehicleMods:Toggle({
+carFlyToggle = Tabs.VehicleMods:Toggle({
 	Title = "Car Fly",
 	Desc = "Fly your car around with WASD movement",
 	Value = false,
@@ -176,23 +179,12 @@ Tabs.VehicleMods:Slider({
 	end,
 })
 
-Tabs.VehicleMods:Button({
-	Title = "Change Fly Keybind",
-	Desc = "Press this to set a new keybind for car fly (Press any key)",
-	Callback = function()
-		local connection
-		connection = UIS.InputBegan:Connect(function(input, gameProcessed)
-			if gameProcessed then return end
-			if input.KeyCode ~= Enum.KeyCode.Unknown then
-				flyKeybind = input.KeyCode
-				connection:Disconnect()
-				WindUI:Notify({
-					Title = "Car Fly",
-					Content = "Keybind changed to " .. input.KeyCode.Name,
-					Duration = 2,
-				})
-			end
-		end)
+Tabs.VehicleMods:Keybind({
+	Title = "Car Fly Keybind",
+	Desc = "Toggle car fly with a single press",
+	Value = "LeftAlt",
+	Callback = function(v)
+		flyKeybind = Enum.KeyCode[v]
 	end,
 })
 
