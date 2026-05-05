@@ -128,21 +128,6 @@ local function UpdateESP()
             continue
         end
 
-        local anyPartVisible = false
-        for _, part in ipairs(vehicle:GetDescendants()) do
-            if IsPartOnScreen(part) then
-                anyPartVisible = true
-                break
-            end
-        end
-
-        if not anyPartVisible then
-            obj.label.Visible  = false
-            obj.box.Visible    = false
-            obj.tracer.Visible = false
-            continue
-        end
-
         local worldPos = root.Position
         local screenPos, onScreen, depth = WorldToViewport(worldPos)
         local dist = localPos and (worldPos - localPos).Magnitude or math.huge
@@ -347,21 +332,30 @@ VisualsTab:Colorpicker({
     Title    = "Label Color",
     Desc     = "Color of the vehicle name / info text.",
     Value    = NameColor,
-    Callback = function(c) NameColor = c end,
+    Callback = function(c)
+        NameColor = c
+        for _, obj in pairs(ESPObjects) do obj.label.Color = NameColor end
+    end,
 })
 
 VisualsTab:Colorpicker({
     Title    = "Box Color",
     Desc     = "Color of the bounding box drawn around vehicles.",
     Value    = BoxColor,
-    Callback = function(c) BoxColor = c end,
+    Callback = function(c)
+        BoxColor = c
+        for _, obj in pairs(ESPObjects) do obj.box.Color = BoxColor end
+    end,
 })
 
 VisualsTab:Colorpicker({
     Title    = "Tracer Color",
     Desc     = "Color of the tracer lines.",
     Value    = TracerColor,
-    Callback = function(c) TracerColor = c end,
+    Callback = function(c)
+        TracerColor = c
+        for _, obj in pairs(ESPObjects) do obj.tracer.Color = TracerColor end
+    end,
 })
 
 VisualsTab:Section({ Title = "Filters" })
