@@ -5,16 +5,15 @@ local COOLDOWN = 1.8
 local function bringCar()
     if tick() - lastUsed < COOLDOWN then return end
     lastUsed = tick()
-
+    
     local character = player.Character
     if not character or not character:FindFirstChild("HumanoidRootPart") then return end
-
+    
     local root = character.HumanoidRootPart
     local targetCFrame = root.CFrame * CFrame.new(0, 5.5, 0)
-
     local vehicle = nil
+    
     local folder = workspace:FindFirstChild("Vehicles") or workspace
-
     for _, v in ipairs(folder:GetChildren()) do
         if v:IsA("Model") then
             local control = v:FindFirstChild("Control_Values")
@@ -28,27 +27,20 @@ local function bringCar()
             end
         end
     end
-
+    
     if not vehicle then return end
-
-    wait(math.random(8,15)/100)
-
+    
+    task.wait(math.random(8,15)/100)
+    
     pcall(function()
-        if vehicle.PrimaryPart then
-            vehicle:SetPrimaryPartCFrame(targetCFrame)
-        else
-            local part = vehicle:FindFirstChild("Chassis") or vehicle:FindFirstChildWhichIsA("BasePart")
-            if part then
-                part.CFrame = targetCFrame
-            end
-        end
+        vehicle:PivotTo(targetCFrame)
     end)
-
-    wait(0.18 + math.random(1,4)/100)
-
+    
+    task.wait(0.18 + math.random(1,4)/100)
+    
     local seat = vehicle:FindFirstChild("DriverSeat") or vehicle:FindFirstChildWhichIsA("VehicleSeat")
     if seat and character:FindFirstChild("Humanoid") then
-        seat:Sit(character.Humanoid)
+        character:PivotTo(seat.CFrame)
     end
 end
 
