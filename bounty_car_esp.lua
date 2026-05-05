@@ -28,6 +28,7 @@ local TracerOrigin  = "Bottom"
 local LabelFontSize = 24
 
 local ESPObjects = {}
+local RegisteredVehicles = {}
 
 local function IsPartOnScreen(part)
     if not part:IsA("BasePart") then return false end
@@ -219,34 +220,51 @@ local function UpdateESP()
 end
 
 local function RegisterVehicle(vehicle)
-    if vehicle:IsA("Model") then 
-        CreateESPForVehicle(vehicle)
+    if not vehicle or RegisteredVehicles[vehicle] then return end
+    if not vehicle:IsA("Model") then return end
+    
+    RegisteredVehicles[vehicle] = true
+    CreateESPForVehicle(vehicle)
+    
+    local root = GetVehicleRoot(vehicle)
+    if root then
+        local notifContent = GetVehicleName(vehicle) .. " spawned!"
         
-        local root = GetVehicleRoot(vehicle)
-        if root then
-            local notifContent = GetVehicleName(vehicle) .. " spawned!"
-            
-            if LocalPlayer.Character and LocalPlayer.Character.PrimaryPart then
-                local dist = (root.Position - LocalPlayer.Character.PrimaryPart.Position).Magnitude
-                notifContent = GetVehicleName(vehicle) .. " spawned " .. string.format("%.0f", dist) .. " meters away!"
-            end
-            
-            WindUI:Notify({
-                Title = "Bounty Car Spawned",
-                Content = notifContent,
-                Duration = 3,
-            })
+        if LocalPlayer.Character and LocalPlayer.Character.PrimaryPart then
+            local dist = (root.Position - LocalPlayer.Character.PrimaryPart.Position).Magnitude
+            notifContent = GetVehicleName(vehicle) .. " spawned " .. string.format("%.0f", dist) .. " meters away!"
         end
+        
+        WindUI:Notify({
+            Title = "Bounty Car Spawned",
+            Content = notifContent,
+            Duration = 3,
+        })
     end
 end
 
 local function UnregisterVehicle(vehicle)
+    RegisteredVehicles[vehicle] = nil
     RemoveESPForVehicle(vehicle)
 end
 
 for _, v in ipairs(BountyVehicles:GetChildren()) do RegisterVehicle(v) end
 BountyVehicles.ChildAdded:Connect(RegisterVehicle)
 BountyVehicles.ChildRemoved:Connect(UnregisterVehicle)
+
+local scanConn
+local function StartScan()
+    if scanConn then return end
+    scanConn = RunService.Heartbeat:Connect(function()
+        if BountyVehicles then
+            for _, vehicle in ipairs(BountyVehicles:GetChildren()) do
+                if vehicle and vehicle.Parent and not RegisteredVehicles[vehicle] then
+                    RegisterVehicle(vehicle)
+                end
+            end
+        end
+    end)
+end
 
 local renderConn
 local function StartRender()
@@ -263,6 +281,7 @@ local function StopRender()
 end
 
 StartRender()
+StartScan()
 
 local VisualsTab = Tabs.Visuals
 
@@ -371,6 +390,7 @@ VisualsTab:Button({
     Desc     = "Reloads all bounty vehicle ESP objects. Use if any vehicles are missing.",
     Callback = function()
         ClearAllESP()
+        RegisteredVehicles = {}
         for _, v in ipairs(BountyVehicles:GetChildren()) do RegisterVehicle(v) end
         WindUI:Notify({
             Title    = "Bounty Car ESP",
