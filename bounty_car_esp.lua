@@ -223,7 +223,7 @@ local function RegisterVehicle(vehicle)
         WindUI:Notify({
             Title = "Bounty Car Spawned",
             Content = notifContent,
-            Duration = 3,
+            Duration = 30,
         })
     end
 end
