@@ -305,7 +305,7 @@ VisualsTab:Section({ Title = "ESP Colors" })
 VisualsTab:Colorpicker({
     Title = "Label Color",
     Desc = "Color of the vehicle name / info text.",
-    Value = NameColor,
+    Default = NameColor,
     Callback = function(c)
         NameColor = c
         for _, obj in pairs(ESPObjects) do obj.label.Color = NameColor end
@@ -314,7 +314,7 @@ VisualsTab:Colorpicker({
 VisualsTab:Colorpicker({
     Title = "Box Color",
     Desc = "Color of the bounding box drawn around vehicles.",
-    Value = BoxColor,
+    Default = BoxColor,
     Callback = function(c)
         BoxColor = c
         for _, obj in pairs(ESPObjects) do obj.box.Color = BoxColor end
@@ -323,7 +323,7 @@ VisualsTab:Colorpicker({
 VisualsTab:Colorpicker({
     Title = "Tracer Color",
     Desc = "Color of the tracer lines.",
-    Value = TracerColor,
+    Default = TracerColor,
     Callback = function(c)
         TracerColor = c
         for _, obj in pairs(ESPObjects) do obj.tracer.Color = TracerColor end
@@ -345,23 +345,6 @@ VisualsTab:Slider({
     Callback = function(v)
         LabelFontSize = tonumber(v) or 24
         for _, obj in pairs(ESPObjects) do obj.label.Size = LabelFontSize end
-    end,
-})
-VisualsTab:Button({
-    Title = "Refresh ESP",
-    Desc = "Reloads all bounty vehicle ESP objects. Use if any vehicles are missing.",
-    Callback = function()
-        ClearAllESP()
-        RegisteredVehicles = {}
-        local folder = GetBountyFolder()
-        if folder then
-            for _, v in ipairs(folder:GetChildren()) do RegisterVehicle(v) end
-        end
-        WindUI:Notify({
-            Title = "Bounty Car ESP",
-            Content = "ESP refreshed.",
-            Duration = 3,
-        })
     end,
 })
 WindUI:Notify({
