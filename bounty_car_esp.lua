@@ -218,13 +218,13 @@ local function RegisterVehicle(vehicle)
             notifContent = name .. " spawned " .. string.format("%.0f", dist) .. " meters away!"
         end
 
-        for i = 1, 8 do
+        for i = 1, 5 do
             WindUI:Notify({
                 Title = "Bounty Car Spawned",
                 Content = notifContent,
-                Duration = 1.2,
+                Duration = 0.6,
             })
-            task.wait(0.55)
+            task.wait(0.35)
         end
     end)
 end
@@ -303,5 +303,5 @@ VisualsTab:Slider({ Title = "Label Font Size", Desc = "Size of the text labels d
 WindUI:Notify({
     Title = "Bounty Car ESP loaded",
     Content = "ESP is active. Configure settings in the Visuals tab.",
-    Duration = 4,
+    Duration = 4,3
 })
