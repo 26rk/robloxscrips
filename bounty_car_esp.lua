@@ -193,10 +193,10 @@ end
 
 local function RegisterVehicle(vehicle)
     if not vehicle or RegisteredVehicles[vehicle] or not vehicle:IsA("Model") then return end
-   
+  
     RegisteredVehicles[vehicle] = true
     CreateESPForVehicle(vehicle)
-   
+  
     task.spawn(function()
         local root = GetVehicleRoot(vehicle)
         local timer = 0
@@ -205,19 +205,35 @@ local function RegisterVehicle(vehicle)
             root = GetVehicleRoot(vehicle)
             timer = timer + 0.5
         end
-        
+       
         local name = GetVehicleName(vehicle)
         local notifContent = name .. " spawned!"
-       
+      
         if root and LocalPlayer.Character and LocalPlayer.Character.PrimaryPart then
             local dist = (root.Position - LocalPlayer.Character.PrimaryPart.Position).Magnitude
             notifContent = name .. " spawned " .. string.format("%.0f", dist) .. " meters away!"
         end
-       
+            
         WindUI:Notify({
             Title = "Bounty Car Spawned",
             Content = notifContent,
-            Duration = 30,
+            Duration = 4,
+        })
+        
+        task.wait(0.35)
+        
+        WindUI:Notify({
+            Title = "Bounty Car Spawned",
+            Content = notifContent,
+            Duration = 4,
+        })
+        
+        task.wait(0.35)
+        
+        WindUI:Notify({
+            Title = "Bounty Car Spawned",
+            Content = notifContent,
+            Duration = 4,
         })
     end)
 end
