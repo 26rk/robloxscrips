@@ -270,7 +270,7 @@ local PlayerState = {} do
         UserInputService.MouseBehavior = Enum.MouseBehavior.Default
     end
 
-function PlayerState.Pop()
+    function PlayerState.Pop()
         for name, isEnabled in pairs(coreGuis) do StarterGui:SetCoreGuiEnabled(Enum.CoreGuiType[name], isEnabled) end
         for name, isEnabled in pairs(setCores) do StarterGui:SetCore(name, isEnabled) end
         for _, gui in pairs(screenGuis) do
