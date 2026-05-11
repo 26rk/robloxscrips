@@ -271,19 +271,21 @@ local PlayerState = {} do
     end
 
     function PlayerState.Pop()
+        Camera.FieldOfView = cameraFieldOfView
+        Camera.CameraType = cameraType
+        Camera.Focus = cameraFocus
+        Camera.CFrame = cameraCFrame
+        
+        task.wait()
+        
         for name, isEnabled in pairs(coreGuis) do StarterGui:SetCoreGuiEnabled(Enum.CoreGuiType[name], isEnabled) end
         for name, isEnabled in pairs(setCores) do StarterGui:SetCore(name, isEnabled) end
         for _, gui in pairs(screenGuis) do
             if gui.Parent then gui.Enabled = true end
         end
-        Camera.FieldOfView = cameraFieldOfView
-        Camera.CameraType = cameraType
-        Camera.CFrame = cameraCFrame
-        Camera.Focus = cameraFocus
         UserInputService.MouseIconEnabled = mouseIconEnabled
         UserInputService.MouseBehavior = mouseBehavior
         screenGuis = {}
-    end
 end
 
 local function StartFreecam()
