@@ -283,6 +283,7 @@ local PlayerState = {} do
         UserInputService.MouseIconEnabled = mouseIconEnabled
         UserInputService.MouseBehavior = mouseBehavior
         screenGuis = {}
+    end
 end
 
 local function StartFreecam()
