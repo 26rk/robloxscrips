@@ -14,9 +14,6 @@ local StarterGui = game:GetService("StarterGui")
 local UserInputService = game:GetService("UserInputService")
 local Workspace = game:GetService("Workspace")
 
-local Settings = UserSettings()
-local GameSettings = Settings.GameSettings
-
 local LocalPlayer = Players.LocalPlayer
 if not LocalPlayer then
     Players:GetPropertyChangedSignal("LocalPlayer"):Wait()
@@ -28,20 +25,6 @@ Workspace:GetPropertyChangedSignal("CurrentCamera"):Connect(function()
     local newCamera = Workspace.CurrentCamera
     if newCamera then Camera = newCamera end
 end)
-
-local FFlagUserExitFreecamBreaksWithShiftlock do
-    local success, result = pcall(function()
-        return UserSettings():IsUserFeatureEnabled("UserExitFreecamBreaksWithShiftlock")
-    end)
-    FFlagUserExitFreecamBreaksWithShiftlock = success and result
-end
-
-local FFlagUserShowGuiHideToggles do
-    local success, result = pcall(function()
-        return UserSettings():IsUserFeatureEnabled("UserShowGuiHideToggles")
-    end)
-    FFlagUserShowGuiHideToggles = success and result
-end
 
 local NAV_GAIN = Vector3.new(1, 1, 1)*64
 local PAN_GAIN = Vector2.new(0.75, 1)*8
@@ -183,16 +166,11 @@ do
 
         function Input.StartCapture()
             ContextActionService:BindActionAtPriority("FreecamKeyboard", Keypress, false, 2000,
-                Enum.KeyCode.W, Enum.KeyCode.U, Enum.KeyCode.A, Enum.KeyCode.H,
-                Enum.KeyCode.S, Enum.KeyCode.J, Enum.KeyCode.D, Enum.KeyCode.K,
-                Enum.KeyCode.E, Enum.KeyCode.I, Enum.KeyCode.Q, Enum.KeyCode.Y,
-                Enum.KeyCode.Up, Enum.KeyCode.Down
+                Enum.KeyCode.W, Enum.KeyCode.A, Enum.KeyCode.S, Enum.KeyCode.D,
+                Enum.KeyCode.E, Enum.KeyCode.Q, Enum.KeyCode.Up, Enum.KeyCode.Down
             )
             ContextActionService:BindActionAtPriority("FreecamMousePan", MousePan, false, 2000, Enum.UserInputType.MouseMovement)
             ContextActionService:BindActionAtPriority("FreecamMouseWheel", MouseWheel, false, 2000, Enum.UserInputType.MouseWheel)
-            ContextActionService:BindActionAtPriority("FreecamGamepadButton", GpButton, false, 2000, Enum.KeyCode.ButtonX, Enum.KeyCode.ButtonY)
-            ContextActionService:BindActionAtPriority("FreecamGamepadTrigger", Trigger, false, 2000, Enum.KeyCode.ButtonR2, Enum.KeyCode.ButtonL2)
-            ContextActionService:BindActionAtPriority("FreecamGamepadThumbstick", Thumb, false, 2000, Enum.KeyCode.Thumbstick1, Enum.KeyCode.Thumbstick2)
         end
 
         function Input.StopCapture()
@@ -203,9 +181,6 @@ do
             ContextActionService:UnbindAction("FreecamKeyboard")
             ContextActionService:UnbindAction("FreecamMousePan")
             ContextActionService:UnbindAction("FreecamMouseWheel")
-            ContextActionService:UnbindAction("FreecamGamepadButton")
-            ContextActionService:UnbindAction("FreecamGamepadTrigger")
-            ContextActionService:UnbindAction("FreecamGamepadThumbstick")
         end
     end
 end
@@ -218,44 +193,25 @@ local function StepFreecam(dt)
     local zoomFactor = sqrt(tan(rad(70/2))/tan(rad(cameraFov/2)))
     cameraFov = clamp(cameraFov + fov*FOV_GAIN*(dt/zoomFactor), 1, 120)
     cameraRot = cameraRot + pan*PAN_GAIN*(dt/zoomFactor)
-    cameraRot = Vector2.new(clamp(cameraRot.x, -PITCH_LIMIT, PITCH_LIMIT), cameraRot.y%(2*pi))
+    cameraRot = Vector2.new(clamp(cameraRot.x, -PITCH_LIMIT, PITCH_LIMIT), cameraRot.y % (2*pi))
 
-    local cameraCFrame = CFrame.new(cameraPos)*CFrame.fromOrientation(cameraRot.x, cameraRot.y, 0)*CFrame.new(vel*NAV_GAIN*dt)
-    cameraPos = cameraCFrame.p
+    local cameraCFrame = CFrame.new(cameraPos) * CFrame.fromOrientation(cameraRot.x, cameraRot.y, 0) * CFrame.new(vel*NAV_GAIN*dt)
+    cameraPos = cameraCFrame.Position
     Camera.CFrame = cameraCFrame
     Camera.Focus = cameraCFrame
     Camera.FieldOfView = cameraFov
 end
 
-local function CheckMouseLockAvailability()
-    local devAllowsMouseLock = Players.LocalPlayer.DevEnableMouseLock
-    local devMovementModeIsScriptable = Players.LocalPlayer.DevComputerMovementMode == Enum.DevComputerMovementMode.Scriptable
-    local userHasMouseLockModeEnabled = GameSettings.ControlMode == Enum.ControlMode.MouseLockSwitch
-    local userHasClickToMoveEnabled = GameSettings.ComputerMovementMode == Enum.ComputerMovementMode.ClickToMove
-    return devAllowsMouseLock and userHasMouseLockModeEnabled and not userHasClickToMoveEnabled and not devMovementModeIsScriptable
-end
-
 local PlayerState = {}
 do
-    local mouseBehavior
-    local mouseIconEnabled
-    local cameraType
-    local cameraFocus
-    local cameraCFrame
-    local cameraFieldOfView
+    local mouseBehavior, mouseIconEnabled, cameraType, cameraFocus, cameraCFrame, cameraFieldOfView
     local screenGuis = {}
-
     local coreGuis = { Backpack = true, Chat = true, Health = true, PlayerList = true }
-    local setCores = { BadgesNotificationsActive = true, PointsNotificationsActive = true }
 
     function PlayerState.Push()
         for name in pairs(coreGuis) do
             coreGuis[name] = StarterGui:GetCoreGuiEnabled(Enum.CoreGuiType[name])
             StarterGui:SetCoreGuiEnabled(Enum.CoreGuiType[name], false)
-        end
-        for name in pairs(setCores) do
-            setCores[name] = StarterGui:GetCore(name)
-            StarterGui:SetCore(name, false)
         end
 
         local playergui = LocalPlayer:FindFirstChildOfClass("PlayerGui")
@@ -276,18 +232,12 @@ do
         cameraFocus = Camera.Focus
         mouseIconEnabled = UserInputService.MouseIconEnabled
         UserInputService.MouseIconEnabled = false
-
-        if FFlagUserExitFreecamBreaksWithShiftlock and CheckMouseLockAvailability() then
-            mouseBehavior = Enum.MouseBehavior.Default
-        else
-            mouseBehavior = UserInputService.MouseBehavior
-        end
+        mouseBehavior = UserInputService.MouseBehavior
         UserInputService.MouseBehavior = Enum.MouseBehavior.Default
     end
 
     function PlayerState.Pop()
         for name, isEnabled in pairs(coreGuis) do StarterGui:SetCoreGuiEnabled(Enum.CoreGuiType[name], isEnabled) end
-        for name, isEnabled in pairs(setCores) do StarterGui:SetCore(name, isEnabled) end
         for _, gui in pairs(screenGuis) do
             if gui.Parent then gui.Enabled = true end
         end
@@ -320,18 +270,22 @@ local function StopFreecam()
     PlayerState.Pop()
 end
 
--- Toggle with Shift + P
+_G.FreecamEnabled = false
+
 UserInputService.InputBegan:Connect(function(input, gameProcessed)
     if gameProcessed then return end
-    if (input.KeyCode == Enum.KeyCode.P) and (UserInputService:IsKeyDown(Enum.KeyCode.LeftShift) or UserInputService:IsKeyDown(Enum.KeyCode.RightShift)) then
-        if _G.FreecamEnabled then
-            StopFreecam()
-            _G.FreecamEnabled = false
-        else
-            StartFreecam()
-            _G.FreecamEnabled = true
+    if input.KeyCode == Enum.KeyCode.P then
+        local shiftPressed = UserInputService:IsKeyDown(Enum.KeyCode.LeftShift) or UserInputService:IsKeyDown(Enum.KeyCode.RightShift)
+        if shiftPressed then
+            if _G.FreecamEnabled then
+                StopFreecam()
+                _G.FreecamEnabled = false
+                print("Freecam Disabled")
+            else
+                StartFreecam()
+                _G.FreecamEnabled = true
+                print("Freecam Enabled")
+            end
         end
     end
 end)
-
-print("Freecam Loaded | Press Shift + P to Toggle")
