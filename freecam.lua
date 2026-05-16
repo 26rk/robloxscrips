@@ -43,12 +43,6 @@ local FFlagUserShowGuiHideToggles do
     FFlagUserShowGuiHideToggles = success and result
 end
 
-local FREECAM_ENABLED_ATTRIBUTE_NAME = "FreecamEnabled"
-local TOGGLE_INPUT_PRIORITY = Enum.ContextActionPriority.Low.Value
-local INPUT_PRIORITY = Enum.ContextActionPriority.High.Value
-
-local FREECAM_TOGGLE = Enum.KeyCode.KeypadZero
-
 local NAV_GAIN = Vector3.new(1, 1, 1)*64
 local PAN_GAIN = Vector2.new(0.75, 1)*8
 local FOV_GAIN = 300
@@ -188,17 +182,17 @@ do
         end
 
         function Input.StartCapture()
-            ContextActionService:BindActionAtPriority("FreecamKeyboard", Keypress, false, INPUT_PRIORITY,
+            ContextActionService:BindActionAtPriority("FreecamKeyboard", Keypress, false, 2000,
                 Enum.KeyCode.W, Enum.KeyCode.U, Enum.KeyCode.A, Enum.KeyCode.H,
                 Enum.KeyCode.S, Enum.KeyCode.J, Enum.KeyCode.D, Enum.KeyCode.K,
                 Enum.KeyCode.E, Enum.KeyCode.I, Enum.KeyCode.Q, Enum.KeyCode.Y,
                 Enum.KeyCode.Up, Enum.KeyCode.Down
             )
-            ContextActionService:BindActionAtPriority("FreecamMousePan", MousePan, false, INPUT_PRIORITY, Enum.UserInputType.MouseMovement)
-            ContextActionService:BindActionAtPriority("FreecamMouseWheel", MouseWheel, false, INPUT_PRIORITY, Enum.UserInputType.MouseWheel)
-            ContextActionService:BindActionAtPriority("FreecamGamepadButton", GpButton, false, INPUT_PRIORITY, Enum.KeyCode.ButtonX, Enum.KeyCode.ButtonY)
-            ContextActionService:BindActionAtPriority("FreecamGamepadTrigger", Trigger, false, INPUT_PRIORITY, Enum.KeyCode.ButtonR2, Enum.KeyCode.ButtonL2)
-            ContextActionService:BindActionAtPriority("FreecamGamepadThumbstick", Thumb, false, INPUT_PRIORITY, Enum.KeyCode.Thumbstick1, Enum.KeyCode.Thumbstick2)
+            ContextActionService:BindActionAtPriority("FreecamMousePan", MousePan, false, 2000, Enum.UserInputType.MouseMovement)
+            ContextActionService:BindActionAtPriority("FreecamMouseWheel", MouseWheel, false, 2000, Enum.UserInputType.MouseWheel)
+            ContextActionService:BindActionAtPriority("FreecamGamepadButton", GpButton, false, 2000, Enum.KeyCode.ButtonX, Enum.KeyCode.ButtonY)
+            ContextActionService:BindActionAtPriority("FreecamGamepadTrigger", Trigger, false, 2000, Enum.KeyCode.ButtonR2, Enum.KeyCode.ButtonL2)
+            ContextActionService:BindActionAtPriority("FreecamGamepadThumbstick", Thumb, false, 2000, Enum.KeyCode.Thumbstick1, Enum.KeyCode.Thumbstick2)
         end
 
         function Input.StopCapture()
@@ -250,6 +244,7 @@ do
     local cameraCFrame
     local cameraFieldOfView
     local screenGuis = {}
+
     local coreGuis = { Backpack = true, Chat = true, Health = true, PlayerList = true }
     local setCores = { BadgesNotificationsActive = true, PointsNotificationsActive = true }
 
@@ -307,9 +302,6 @@ do
 end
 
 local function StartFreecam()
-    if FFlagUserShowGuiHideToggles then
-        script:SetAttribute(FREECAM_ENABLED_ATTRIBUTE_NAME, true)
-    end
     local cameraCFrame = Camera.CFrame
     cameraRot = Vector2.new(cameraCFrame:ToEulerAnglesYXZ())
     cameraPos = cameraCFrame.Position
@@ -323,27 +315,23 @@ local function StartFreecam()
 end
 
 local function StopFreecam()
-    if FFlagUserShowGuiHideToggles then
-        script:SetAttribute(FREECAM_ENABLED_ATTRIBUTE_NAME, false)
-    end
     Input.StopCapture()
     RunService:UnbindFromRenderStep("Freecam")
     PlayerState.Pop()
 end
 
-do
-    local enabled = false
-    local function ToggleFreecam()
-        if enabled then StopFreecam() else StartFreecam() end
-        enabled = not enabled
-    end
-
-    local function HandleActivationInput(action, state, input)
-        if state == Enum.UserInputState.Begin then
-            ToggleFreecam()
+-- Toggle with Shift + P
+UserInputService.InputBegan:Connect(function(input, gameProcessed)
+    if gameProcessed then return end
+    if (input.KeyCode == Enum.KeyCode.P) and (UserInputService:IsKeyDown(Enum.KeyCode.LeftShift) or UserInputService:IsKeyDown(Enum.KeyCode.RightShift)) then
+        if _G.FreecamEnabled then
+            StopFreecam()
+            _G.FreecamEnabled = false
+        else
+            StartFreecam()
+            _G.FreecamEnabled = true
         end
-        return Enum.ContextActionResult.Pass
     end
+end)
 
-    ContextActionService:BindActionAtPriority("FreecamToggle", HandleActivationInput, false, TOGGLE_INPUT_PRIORITY, FREECAM_TOGGLE)
-end
+print("Freecam Loaded | Press Shift + P to Toggle")
