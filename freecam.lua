@@ -17,7 +17,7 @@ local Workspace = game:GetService("Workspace")
 local LocalPlayer = Players.LocalPlayer
 local Camera = Workspace.CurrentCamera
 
-local FREECAM_TOGGLE = Enum.UserInputType.MouseButton5
+local FREECAM_TOGGLE = Enum.KeyCode.F2
 
 local NAV_GAIN = Vector3.new(1, 1, 1)*64
 local PAN_GAIN = Vector2.new(0.75, 1)*8
@@ -192,7 +192,6 @@ local enabled = false
 
 local function ToggleFreecam()
     if enabled then
-        Input.StopCapture = Input.StopCapture or function() end
         RunService:UnbindFromRenderStep("Freecam")
         PlayerState.Pop()
     else
