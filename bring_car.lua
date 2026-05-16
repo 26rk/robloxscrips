@@ -8,13 +8,11 @@ local function bringCar()
 
     local character = player.Character
     if not character or not character:FindFirstChild("HumanoidRootPart") then return end
-
     local root = character.HumanoidRootPart
-    local targetCFrame = root.CFrame * CFrame.new(0, 5.5, 0)
+    local originalCFrame = root.CFrame
 
     local vehicle = nil
     local folder = workspace:FindFirstChild("Vehicles") or workspace
-
     for _, v in ipairs(folder:GetChildren()) do
         if v:IsA("Model") then
             local control = v:FindFirstChild("Control_Values")
@@ -31,25 +29,33 @@ local function bringCar()
 
     if not vehicle then return end
 
+    local seat = vehicle:FindFirstChild("DriverSeat") or vehicle:FindFirstChildWhichIsA("VehicleSeat")
+    if not seat then return end
+
     wait(math.random(8,15)/100)
+    
+    pcall(function()
+        root.CFrame = seat.CFrame * CFrame.new(0, 2, 0)
+    end)
+
+    wait(0.12)
+
+    pcall(function()
+        seat:Sit(character.Humanoid)
+    end)
+
+    wait(0.25 + math.random(1,4)/100)
 
     pcall(function()
         if vehicle.PrimaryPart then
-            vehicle:SetPrimaryPartCFrame(targetCFrame)
+            vehicle:SetPrimaryPartCFrame(originalCFrame * CFrame.new(0, 5, 0))
         else
             local part = vehicle:FindFirstChild("Chassis") or vehicle:FindFirstChildWhichIsA("BasePart")
             if part then
-                part.CFrame = targetCFrame
+                part.CFrame = originalCFrame * CFrame.new(0, 5, 0)
             end
         end
     end)
-
-    wait(0.18 + math.random(1,4)/100)
-
-    local seat = vehicle:FindFirstChild("DriverSeat") or vehicle:FindFirstChildWhichIsA("VehicleSeat")
-    if seat and character:FindFirstChild("Humanoid") then
-        seat:Sit(character.Humanoid)
-    end
 end
 
 game:GetService("UserInputService").InputBegan:Connect(function(input, gp)
