@@ -28,8 +28,6 @@ Workspace:GetPropertyChangedSignal("CurrentCamera"):Connect(function()
     if newCamera then Camera = newCamera end
 end)
 
-local FREECAM_TOGGLE = Enum.KeyCode.B
-
 local NAV_GAIN = Vector3.new(1, 1, 1)*64
 local PAN_GAIN = Vector2.new(0.75, 1)*8
 local FOV_GAIN = 300
@@ -113,14 +111,6 @@ local Input = {} do
     function Input.Fov(dt)
         return (gamepad.ButtonX - gamepad.ButtonY)*FOV_GAMEPAD_SPEED + mouse.MouseWheel*FOV_WHEEL_SPEED
     end
-
-    -- Simple toggle with UserInputService
-    UserInputService.InputBegan:Connect(function(input, gp)
-        if gp then return end
-        if input.KeyCode == FREECAM_TOGGLE then
-            ToggleFreecam()
-        end
-    end)
 end
 
 local function StepFreecam(dt)
@@ -192,7 +182,7 @@ end
 
 local enabled = false
 
-function ToggleFreecam()
+local function ToggleFreecam()
     if enabled then
         RunService:UnbindFromRenderStep("Freecam")
         PlayerState.Pop()
@@ -210,4 +200,9 @@ function ToggleFreecam()
     enabled = not enabled
 end
 
-print("Freecam loaded - Press B to toggle")
+UserInputService.InputBegan:Connect(function(input, gameProcessed)
+    if gameProcessed then return end
+    if input.KeyCode == Enum.KeyCode.Numpad0 then
+        ToggleFreecam()
+    end
+end)
